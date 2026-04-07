@@ -3,6 +3,18 @@ from django.http import JsonResponse
 from .models import Shoe
 
 
+# ✅ Homepage API (optional but recommended)
+def home(request):
+    return JsonResponse({
+        "message": "Welcome to Shoes API 🚀",
+        "endpoints": {
+            "all_shoes": "/shoes/",
+            "admin": "/admin/"
+        }
+    })
+
+
+# ✅ Main Shoes API
 class ShoeView(View):
     def get(self, request):
         shoes = Shoe.objects.all()
@@ -33,19 +45,19 @@ class ShoeView(View):
         if min_price:
             try:
                 shoes = shoes.filter(price__gte=int(min_price))
-            except:
+            except ValueError:
                 pass
 
         if max_price:
             try:
                 shoes = shoes.filter(price__lte=int(max_price))
-            except:
+            except ValueError:
                 pass
 
         if rating:
             try:
                 shoes = shoes.filter(rating__gte=float(rating))
-            except:
+            except ValueError:
                 pass
 
         # 🔽 Sorting
@@ -60,7 +72,7 @@ class ShoeView(View):
         try:
             page = int(request.GET.get('page', 1))
             limit = int(request.GET.get('limit', 5))
-        except:
+        except ValueError:
             page = 1
             limit = 5
 
@@ -70,16 +82,23 @@ class ShoeView(View):
         total = shoes.count()
         shoes = shoes[start:end]
 
-        # 📦 Output
+        # 📦 Response data
         data = []
         for shoe in shoes:
-            image_url = request.build_absolute_uri(shoe.image.url) if shoe.image else None
+            # ✅ Safe image handling
+            image_url = None
+            if shoe.image:
+                try:
+                    image_url = request.build_absolute_uri(shoe.image.url)
+                except:
+                    image_url = None
 
             data.append({
                 "id": shoe.id,
                 "name": shoe.name,
                 "brand": shoe.brand,
                 "price": shoe.price,
+                "description": shoe.description,
                 "category": shoe.category,
                 "rating": shoe.rating,
                 "color": shoe.color,
